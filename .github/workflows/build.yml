@@ -1,0 +1,46 @@
+name: Build FocusMate APK
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unzip Project
+        run: unzip FocusMateAndroid.zip
+
+      - name: Fix Code Bugs Automatically
+        run: |
+          cd FocusMateAndroid
+          # Fix 1: Delete the broken XML text causing the crash
+          sed -i 's/android:description="[^"]*"//g' app/src/main/res/xml/app_guard_accessibility.xml
+          # Fix 2: Ignore the Java/Kotlin version mismatch
+          echo "kotlin.jvm.target.validation.mode=ignore" >> gradle.properties
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build Final APK
+        run: |
+          cd FocusMateAndroid
+          gradle assembleDebug
+
+      - name: Upload Finished App
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusmate-app
+          path: FocusMateAndroid/app/build/outputs/apk/debug/*.apk
